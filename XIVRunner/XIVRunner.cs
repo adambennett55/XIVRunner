@@ -1,6 +1,8 @@
-﻿using Dalamud.Plugin;
+﻿using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using Lumina.Excel.GeneratedSheets;
 using System.Numerics;
 
 namespace XIVRunner;
@@ -10,41 +12,29 @@ namespace XIVRunner;
 /// </summary>
 public class XIVRunner : IDisposable
 {
-    private float? _direction;
-    private readonly Queue<Vector3> _naviPts = new Queue<Vector3>(64);
+    private readonly MovementManager _movementManager;
+
     /// <summary>
-    /// The direction that the character should go to.
+    /// The Navigate points.
     /// </summary>
-    public float? Direction
-    {
-        get  => _direction;
-        set
-        {
-            if (value == _direction) return;
-
-            _direction = value.HasValue
-                ? Mod(value.Value + MathF.PI, MathF.Tau) - MathF.PI
-                : null;
-
-            float Mod(float a, float b) => (a % b + b) % b;
-        }
-    }
-
-    private bool IsAutoRunning 
-    {
-        get => InputManager.IsAutoRunning();
-        set
-        {
-            if (IsAutoRunning == value) return;
-
-            Chat.SendMessage("/automove");
-        }
-    }
+    public Queue<Vector3> NaviPts { get; } = new Queue<Vector3>(64);
 
     /// <summary>
     /// Auto run along the pts.
     /// </summary>
     public bool RunAlongPts { get; set; }
+
+    /// <summary>
+    /// If the player is close enough to the point, It'll remove the pt.
+    /// </summary>
+    public float Precision 
+    {
+        get => _movementManager.Precision;
+        set => _movementManager.Precision = value;
+    }
+
+    internal bool IsFlying => Service.Condition[ConditionFlag.InFlight] || Service.Condition[ConditionFlag.Diving];
+    internal bool IsMounted => Service.Condition[ConditionFlag.Mounted];
 
     /// <summary>
     /// The way to create this.
@@ -54,108 +44,103 @@ public class XIVRunner : IDisposable
     public static XIVRunner Create(DalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
-        Chat.Init();
         return new XIVRunner();
     }
 
     private XIVRunner()
     {
-        if (Service.Framework == null) return;
+        _movementManager = new MovementManager();
         Service.Framework.Update += Update;
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (Service.Framework == null) return;
+        _movementManager.Dispose();
         Service.Framework.Update -= Update;
-    }
-
-    /// <summary>
-    /// Add a point into navigating points.
-    /// </summary>
-    /// <param name="pt"></param>
-    public void AddNaviPt(Vector3 pt)
-    {
-        _naviPts.Enqueue(pt);
-    }
-
-    /// <summary>
-    /// Clear all navigate points.
-    /// </summary>
-    public void ClearNaviPt()
-    {
-        _naviPts.Clear();
     }
 
     private  void Update(IFramework framework)
     {
-        if (Service.ClientState?.LocalPlayer == null) return;
+        if (Service.ClientState.LocalPlayer == null) return;
         if (Service.Condition == null || !Service.Condition.Any()) return;
 
+        //TODO: Whether it is possible to take off from the current territory.
+        if (IsMounted && !IsFlying && !Service.Condition[ConditionFlag.Jumping])
+        {
+            ExecuteJump();
+        }
         UpdateDirection();
-        UpdateCameraAndAutoRun();
     }
 
-    static bool _isDirActive = false;
     private void UpdateDirection()
     {
-        if (RunAlongPts)
+        var positon = Service.ClientState.LocalPlayer?.Position ?? default;
+
+        if (!RunAlongPts || !CanMove())
         {
-            _isDirActive = true;
-            var positon = Service.ClientState?.LocalPlayer?.Position ?? default;
+            _movementManager.DesiredPosition = null;
+            return;
+        }
 
-            GetPT:
-            if (_naviPts.Any())
+    GetPT:
+        if (NaviPts.Any())
+        {
+            var target = NaviPts.Peek();
+
+            var dir = target - positon;
+            if (dir.Length() < Precision)
             {
-                var target = _naviPts.Peek();
-                var dir = ToDir(positon, target);
+                NaviPts.Dequeue();
+                goto GetPT;
+            }
 
-                if (dir.Length() < 0.1f)
-                {
-                    _naviPts.Dequeue();
-                    goto GetPT;
-                }
-
-                Direction = VecToRadius(dir);
+            if(_movementManager.DesiredPosition != target)
+            {
+                _movementManager.DesiredPosition = target;
+                TryMount();
             }
         }
-        else if (_isDirActive)
+        else
         {
-            _isDirActive = false;
-            Direction = null;
+            _movementManager.DesiredPosition = null;
+            if (IsMounted) ExecuteMount(); //Try dismount.
         }
     }
 
-    private static Vector2 To2D(in Vector3 pt) => new Vector2(pt.X, pt.Z);
-    private static Vector2 ToDir(in Vector3 from, in Vector3 to)
-        => To2D(to) - To2D(from);
-    private static float VecToRadius(in Vector2 pt)
+    private void TryMount()
     {
-        var x = pt.X;
-        var y = pt.Y;
+        if (IsMounted) return;
 
-        if(y == 0)
+        var territory = Service.Data.GetExcelSheet<TerritoryType>()?.GetRow(Service.ClientState.TerritoryType);
+        if (territory?.Mount ?? false)
         {
-            return x > 0 ? MathF.PI / 2 : -MathF.PI / 2;
+            ExecuteMount();
         }
-
-        var alpha = MathF.Atan(x / y);
-        if (y > 0) return alpha;
-        return alpha + MathF.PI;
     }
 
-    static bool _isCnAActive = false;
-    private unsafe void UpdateCameraAndAutoRun()
+    private bool CanMove()
     {
-        if (Direction.HasValue)
-        {
-            IsAutoRunning = _isCnAActive = true;
-            *(float*)((IntPtr)(void*)CameraManager.Instance()->Camera + 0x130) = Direction.Value;
-        }
-        else if (_isCnAActive)
-        {
-            IsAutoRunning = _isCnAActive = false;
-        }
+        if(Service.ClientState.LocalPlayer?.IsCasting ?? true) return false;
+
+        if (Service.Condition[ConditionFlag.BetweenAreas] 
+            || Service.Condition[ConditionFlag.BetweenAreas51]) return false;
+
+        if (Service.Condition[ConditionFlag.WatchingCutscene]
+            || Service.Condition[ConditionFlag.WatchingCutscene78]
+            || Service.Condition[ConditionFlag.OccupiedInCutSceneEvent]) return false;
+
+        if (Service.Condition[ConditionFlag.OccupiedInQuestEvent] 
+            || Service.Condition[ConditionFlag.OccupiedInEvent] 
+            || Service.Condition[ConditionFlag.OccupiedSummoningBell]) return false;
+
+        if (Service.Condition[ConditionFlag.Unknown57]) return false;
+
+        return true;
     }
+
+    private static unsafe void ExecuteActionSafe(ActionType type, uint id)
+        => ActionManager.Instance()->UseAction(type, id);
+    private void ExecuteMount() => ExecuteActionSafe(ActionType.GeneralAction, 9);
+    private void ExecuteJump() => ExecuteActionSafe(ActionType.GeneralAction, 2);
 }

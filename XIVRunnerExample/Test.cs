@@ -1,38 +1,36 @@
 ﻿using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using ImGuiNET;
 using XIVRunner;
 
 namespace XIVRunnerExample;
 
 public class Test : IDalamudPlugin, IDisposable
 {
-    XIVRunner.XIVRunner runner;
+    XIVRunner.XIVRunner _runner;
 
     public Test(DalamudPluginInterface pluginInterface)
     {
-        runner = XIVRunner.XIVRunner.Create(pluginInterface);
         pluginInterface.Create<Service>();
-        Service.Framework.Update += Update;
 
-        //Example for moving to the center.
-        //runner.AddNaviPt(default);
+        _runner = XIVRunner.XIVRunner.Create(pluginInterface);
+        Service.Framework.Update += Update;
     }
 
     public void Dispose()
     {
-        runner?.Dispose();
+        _runner?.Dispose();
         Service.Framework.Update -= Update;
     }
 
     private void Update(IFramework framework)
     {
-        //Example for moving like a circle.
-        //UpdateDirection();
-    }
-
-    private void UpdateDirection()
-    {
-        var second = DateTime.Now.Ticks / 1000f;
-        runner.Direction = (second / 5) % 1 * MathF.Tau;
+        if (Service.KeyState[Dalamud.Game.ClientState.Keys.VirtualKey.LCONTROL])
+        {
+            if(Service.GameGui.ScreenToWorld(ImGui.GetCursorScreenPos(), out var pos))
+            {
+                _runner.NaviPts.Enqueue(pos);
+            }
+        }
     }
 }
