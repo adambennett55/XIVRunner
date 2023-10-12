@@ -28,11 +28,17 @@ public class XIVRunner : IDisposable
     /// <summary>
     /// If the player is close enough to the point, It'll remove the pt.
     /// </summary>
-    public float Precision 
+    public float Precision
     {
         get => _movementManager.Precision;
         set => _movementManager.Precision = value;
     }
+
+    /// <summary>
+    /// During it is auto running, what actions you want to do? Sprint maybe.
+    /// This action will be invoked everyframe while it is auto running.
+    /// </summary>
+    public System.Action? RunFastAction { get; set; }
 
     /// <summary>
     /// The mount id.
@@ -91,7 +97,8 @@ public class XIVRunner : IDisposable
             var target = NaviPts.Peek();
 
             var dir = target - positon;
-            if (IsFlying ? dir.Length() < Precision : new Vector2(dir.X, dir.Z).Length() < Precision)
+            if (IsFlying ? dir.Length() < Precision 
+                : new Vector2(dir.X, dir.Z).Length() < Precision)
             {
                 NaviPts.Dequeue();
                 goto GetPT;
@@ -161,9 +168,14 @@ public class XIVRunner : IDisposable
     {
         if (IsMounted) return;
 
-        //TODO: add jobs actions for moving fast.
-
-        //ExecuteActionSafe(ActionType.Action, 3); // Sprint.
+        try
+        {
+            RunFastAction?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Service.Log.Warning(ex, $"Your action, {nameof(RunFastAction)}, run failed.");
+        }
     }
 
     private void TryMount()

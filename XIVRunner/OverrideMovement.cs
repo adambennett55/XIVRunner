@@ -102,7 +102,7 @@ internal unsafe class OverrideMovement : IDisposable
 
         dir = DesiredPosition.Value - Service.ClientState.LocalPlayer.Position;
 
-        return dir.Length() > Precision;
+        return dir.Length() > Precision - 0.01f;
     }
 
     private unsafe Vector2 GetMoveDir(in Vector3 dir)
