@@ -65,11 +65,6 @@ public class XIVRunner : IDisposable
         if (Service.ClientState.LocalPlayer == null) return;
         if (Service.Condition == null || !Service.Condition.Any()) return;
 
-        //TODO: Whether it is possible to take off from the current territory.
-        if (IsMounted && !IsFlying && !Service.Condition[ConditionFlag.Jumping])
-        {
-            ExecuteJump();
-        }
         UpdateDirection();
     }
 
@@ -100,11 +95,38 @@ public class XIVRunner : IDisposable
                 _movementManager.DesiredPosition = target;
                 TryMount();
             }
+            else
+            {
+                TryFly();
+            }
         }
-        else
+        else if(_movementManager.DesiredPosition != null)
         {
             _movementManager.DesiredPosition = null;
             if (IsMounted) ExecuteMount(); //Try dismount.
+        }
+    }
+
+    private static readonly Dictionary<ushort, bool> canFly = new Dictionary<ushort, bool>();
+    private void TryFly()
+    {
+        if (Service.Condition[ConditionFlag.Jumping]) return;
+
+        bool hasFly = canFly.TryGetValue(Service.ClientState.TerritoryType, out var fly);
+
+        //TODO: Whether it is possible to fly from the current territory.
+        if ((fly || !hasFly) && IsMounted && !IsFlying)
+        {
+            ExecuteJump();
+        }
+
+        if (!hasFly)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(200);
+                canFly[Service.ClientState.TerritoryType] = IsFlying;
+            });
         }
     }
 

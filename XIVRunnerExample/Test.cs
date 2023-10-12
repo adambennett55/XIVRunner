@@ -1,6 +1,5 @@
 ﻿using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using ImGuiNET;
 using XIVRunner;
 
 namespace XIVRunnerExample;
@@ -14,6 +13,7 @@ public class Test : IDalamudPlugin, IDisposable
         pluginInterface.Create<Service>();
 
         _runner = XIVRunner.XIVRunner.Create(pluginInterface);
+        _runner.RunAlongPts = true;
         Service.Framework.Update += Update;
     }
 
@@ -25,12 +25,12 @@ public class Test : IDalamudPlugin, IDisposable
 
     private void Update(IFramework framework)
     {
-        if (Service.KeyState[Dalamud.Game.ClientState.Keys.VirtualKey.LCONTROL])
+        if (Service.KeyState[Dalamud.Game.ClientState.Keys.VirtualKey.X])
         {
-            if(Service.GameGui.ScreenToWorld(ImGui.GetCursorScreenPos(), out var pos))
-            {
-                _runner.NaviPts.Enqueue(pos);
-            }
+            //_runner.NaviPts.Enqueue(default);
+            _runner.NaviPts.Enqueue(Service.ClientState.LocalPlayer.Position
+                + new System.Numerics.Vector3((float)(new Random().NextDouble() * 10), 0,
+                (float)(new Random().NextDouble() * 10)));
         }
     }
 }
