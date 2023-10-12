@@ -1,5 +1,6 @@
 ﻿//Almost everything comes from https://github.com/awgil/ffxiv_visland/blob/master/OverrideMovement.cs.
 
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -79,6 +80,21 @@ internal unsafe class MovementManager : IDisposable
     private bool CanOverride(out Vector3 dir)
     {
         dir = default;
+
+        if (Service.ClientState.LocalPlayer?.IsCasting ?? true) return false;
+
+        if (Service.Condition[ConditionFlag.BetweenAreas]
+            || Service.Condition[ConditionFlag.BetweenAreas51]) return false;
+
+        if (Service.Condition[ConditionFlag.WatchingCutscene]
+            || Service.Condition[ConditionFlag.WatchingCutscene78]
+            || Service.Condition[ConditionFlag.OccupiedInCutSceneEvent]) return false;
+
+        if (Service.Condition[ConditionFlag.OccupiedInQuestEvent]
+            || Service.Condition[ConditionFlag.OccupiedInEvent]
+            || Service.Condition[ConditionFlag.OccupiedSummoningBell]) return false;
+
+        if (Service.Condition[ConditionFlag.Unknown57]) return false;
 
         // TODO: we really need to introduce some extra checks that PlayerMoveController::readInput does - sometimes it skips reading input, and returning something non-zero breaks stuff...
         if (Service.ClientState?.LocalPlayer == null) return false;

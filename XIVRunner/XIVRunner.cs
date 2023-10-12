@@ -72,7 +72,7 @@ public class XIVRunner : IDisposable
     {
         var positon = Service.ClientState.LocalPlayer?.Position ?? default;
 
-        if (!RunAlongPts || !CanMove())
+        if (!RunAlongPts)
         {
             _movementManager.DesiredPosition = null;
             return;
@@ -103,7 +103,10 @@ public class XIVRunner : IDisposable
         else if(_movementManager.DesiredPosition != null)
         {
             _movementManager.DesiredPosition = null;
-            if (IsMounted) ExecuteMount(); //Try dismount.
+            if (IsMounted && !IsFlying)
+            {
+                ExecuteDismount();
+            }
         }
     }
 
@@ -118,15 +121,15 @@ public class XIVRunner : IDisposable
         if ((fly || !hasFly) && IsMounted && !IsFlying)
         {
             ExecuteJump();
-        }
 
-        if (!hasFly)
-        {
-            Task.Run(async () =>
+            if (!hasFly)
             {
-                await Task.Delay(200);
-                canFly[Service.ClientState.TerritoryType] = IsFlying;
-            });
+                Task.Run(async () =>
+                {
+                    await Task.Delay(200);
+                    canFly[Service.ClientState.TerritoryType] = IsFlying;
+                });
+            }
         }
     }
 
@@ -141,28 +144,9 @@ public class XIVRunner : IDisposable
         }
     }
 
-    private bool CanMove()
-    {
-        if(Service.ClientState.LocalPlayer?.IsCasting ?? true) return false;
-
-        if (Service.Condition[ConditionFlag.BetweenAreas] 
-            || Service.Condition[ConditionFlag.BetweenAreas51]) return false;
-
-        if (Service.Condition[ConditionFlag.WatchingCutscene]
-            || Service.Condition[ConditionFlag.WatchingCutscene78]
-            || Service.Condition[ConditionFlag.OccupiedInCutSceneEvent]) return false;
-
-        if (Service.Condition[ConditionFlag.OccupiedInQuestEvent] 
-            || Service.Condition[ConditionFlag.OccupiedInEvent] 
-            || Service.Condition[ConditionFlag.OccupiedSummoningBell]) return false;
-
-        if (Service.Condition[ConditionFlag.Unknown57]) return false;
-
-        return true;
-    }
-
     private static unsafe void ExecuteActionSafe(ActionType type, uint id)
         => ActionManager.Instance()->UseAction(type, id);
     private void ExecuteMount() => ExecuteActionSafe(ActionType.GeneralAction, 9);
+    private void ExecuteDismount() => ExecuteActionSafe(ActionType.GeneralAction, 23);
     private void ExecuteJump() => ExecuteActionSafe(ActionType.GeneralAction, 2);
 }
