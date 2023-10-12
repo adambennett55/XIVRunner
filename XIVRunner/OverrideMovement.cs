@@ -24,6 +24,7 @@ internal unsafe struct PlayerMoveControllerFlyInput
 internal unsafe class OverrideMovement : IDisposable
 {
     public bool IgnoreUserInput { get; set; }
+    public Action? ActionIfUserInput { get; set; }
     public Vector3? DesiredPosition { get; set; }
     public float Precision { get; set; } = 0.1f;
 
@@ -54,7 +55,12 @@ internal unsafe class OverrideMovement : IDisposable
 
         if (!CanOverride(out var relDir)) return;
 
-        if (bAdditiveUnk == 0 && (IgnoreUserInput || *sumLeft == 0 && *sumForward == 0))
+        var noInput = *sumLeft == 0 && *sumForward == 0;
+        if (!IgnoreUserInput && !noInput)
+        {
+            ActionIfUserInput?.Invoke();
+        }
+        else if (bAdditiveUnk == 0)
         {
             var dir = GetMoveDir(relDir);
             *sumLeft = dir.X;
@@ -68,7 +74,12 @@ internal unsafe class OverrideMovement : IDisposable
 
         if (!CanOverride(out var relDir)) return;
 
-        if ((IgnoreUserInput || result->Forward == 0 && result->Left == 0 && result->Up == 0))
+        var noInput = result->Forward == 0 && result->Left == 0 && result->Up == 0;
+        if (!IgnoreUserInput && !noInput)
+        {
+            ActionIfUserInput?.Invoke();
+        }
+        else
         {
             var dir = GetMoveDir(relDir);
             result->Left = dir.X;

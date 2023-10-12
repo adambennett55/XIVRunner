@@ -26,6 +26,16 @@ public class XIVRunner : IDisposable
     public bool Enable { get; set; }
 
     /// <summary>
+    /// If the users control the movement, what will you do?
+    /// You can modify <see cref="NaviPts"/> at this time.
+    /// </summary>
+    public System.Action? ActionIfUserInput 
+    { 
+        get => _movementManager.ActionIfUserInput;
+        set => _movementManager.ActionIfUserInput = value;
+    }
+
+    /// <summary>
     /// If the player is close enough to the point, It'll remove the pt.
     /// </summary>
     public float Precision
