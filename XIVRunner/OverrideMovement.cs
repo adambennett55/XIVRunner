@@ -21,7 +21,7 @@ internal unsafe struct PlayerMoveControllerFlyInput
     [FieldOffset(0x15)] public byte HaveBackwardOrStrafe;
 }
 
-internal unsafe class MovementManager : IDisposable
+internal unsafe class OverrideMovement : IDisposable
 {
     public bool IgnoreUserInput { get; set; }
     public Vector3? DesiredPosition { get; set; }
@@ -35,7 +35,7 @@ internal unsafe class MovementManager : IDisposable
     [Signature("E8 ?? ?? ?? ?? 0F B6 0D ?? ?? ?? ?? B8", DetourName = nameof(RMIFlyDetour))]
     private Hook<RMIFlyDelegate> _rmiFlyHook = null!;
 
-    public MovementManager()
+    public OverrideMovement()
     {
         Service.Hook?.InitializeFromAttributes(this);
         _rmiWalkHook.Enable();

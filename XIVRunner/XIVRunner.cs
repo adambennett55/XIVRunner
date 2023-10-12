@@ -12,7 +12,7 @@ namespace XIVRunner;
 /// </summary>
 public class XIVRunner : IDisposable
 {
-    private readonly MovementManager _movementManager;
+    private readonly OverrideMovement _movementManager;
 
     /// <summary>
     /// The Navigate points.
@@ -33,6 +33,11 @@ public class XIVRunner : IDisposable
         set => _movementManager.Precision = value;
     }
 
+    /// <summary>
+    /// The mount id.
+    /// </summary>
+    public uint? MountId { get; set; }
+
     internal bool IsFlying => Service.Condition[ConditionFlag.InFlight] || Service.Condition[ConditionFlag.Diving];
     internal bool IsMounted => Service.Condition[ConditionFlag.Mounted];
 
@@ -49,7 +54,7 @@ public class XIVRunner : IDisposable
 
     private XIVRunner()
     {
-        _movementManager = new MovementManager();
+        _movementManager = new OverrideMovement();
         Service.Framework.Update += Update;
     }
 
@@ -84,7 +89,7 @@ public class XIVRunner : IDisposable
             var target = NaviPts.Peek();
 
             var dir = target - positon;
-            if (dir.Length() < Precision)
+            if (IsFlying ? dir.Length() < Precision : new Vector2(dir.X, dir.Z).Length() < Precision)
             {
                 NaviPts.Dequeue();
                 goto GetPT;
@@ -144,9 +149,21 @@ public class XIVRunner : IDisposable
         }
     }
 
-    private static unsafe void ExecuteActionSafe(ActionType type, uint id)
-        => ActionManager.Instance()->UseAction(type, id);
-    private void ExecuteMount() => ExecuteActionSafe(ActionType.GeneralAction, 9);
-    private void ExecuteDismount() => ExecuteActionSafe(ActionType.GeneralAction, 23);
-    private void ExecuteJump() => ExecuteActionSafe(ActionType.GeneralAction, 2);
+    private static unsafe bool ExecuteActionSafe(ActionType type, uint id)
+        => ActionManager.Instance()->GetActionStatus(type, id) == 0 
+        && ActionManager.Instance()->UseAction(type, id);
+
+    private bool ExecuteMount()
+    {
+        if (MountId.HasValue && ExecuteActionSafe(ActionType.Mount, MountId.Value))
+        {
+            return true;
+        }
+        else
+        {
+            return ExecuteActionSafe(ActionType.GeneralAction, 9);
+        }
+    }
+    private bool ExecuteDismount() => ExecuteActionSafe(ActionType.GeneralAction, 23);
+    private bool ExecuteJump() => ExecuteActionSafe(ActionType.GeneralAction, 2);
 }
