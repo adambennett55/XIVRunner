@@ -1,8 +1,43 @@
 # XIVRunner
 
-This is a repo in Dalamud for auto-moving the character.
+This is a repo in Dalamud for auto-moving the character by inputting positions.
 
-This is by changing the camera direction and turning on the `automove` to make this idea come true.
+This repo is heavily inspired by [awgil/ffxiv_visland](https://github.com/awgil/ffxiv_visland).
 
-[RebornBuddy](https://www.rebornbuddy.com/) can make the character move directly, But I don't know how to do it in Dalamud. If you have any ideas, you can PR to this repo.
+## Getting Started
 
+Add XIVRunner as a submodule to your project:
+
+```shell
+git submodule add https://github.com/ArchiDog1998/XIVRunner
+```
+
+Add it to your plugin's CSProj file:
+
+```xml
+<ItemGroup>
+	<ProjectReference Include="..\XIVRunner\XIVRunner\XIVRunner.csproj" />
+</ItemGroup>
+```
+
+Then, in the entry point of your plugin:
+
+```c#
+var runner = XIVRunner.XIVRunner.Create(pluginInterface);
+runner.Enable = true;
+```
+
+where pluginInterface is a **DalamudPluginInterface**.
+
+Don't forget to **dispose** it!
+
+## Usage
+
+The character will act in strict accordance with the order of points. So please make sure that your positions are valid. The `NaviPts` is type`Queue<Vector3>`. You can modify it freely.
+
+```c#
+runner.NaviPts.Enqueue(Service.ClientState.LocalPlayer.Position
+	+ new System.Numerics.Vector3(10, 0, 0));
+```
+
+Besides, you can change the `MountId` to the mount it is called.

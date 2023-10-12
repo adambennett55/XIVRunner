@@ -23,7 +23,7 @@ public class XIVRunner : IDisposable
     /// <summary>
     /// Auto run along the pts.
     /// </summary>
-    public bool RunAlongPts { get; set; }
+    public bool Enable { get; set; }
 
     /// <summary>
     /// If the player is close enough to the point, It'll remove the pt.
@@ -79,7 +79,7 @@ public class XIVRunner : IDisposable
     {
         var positon = Service.ClientState.LocalPlayer?.Position ?? default;
 
-        if (!RunAlongPts)
+        if (!Enable)
         {
             _movementManager.DesiredPosition = null;
             return;
