@@ -13,6 +13,7 @@ namespace XIVRunner;
 public class XIVRunner : IDisposable
 {
     private readonly OverrideMovement _movementManager;
+    private readonly OverrideAFK _overrideAFK;
 
     /// <summary>
     /// The Navigate points.
@@ -55,6 +56,7 @@ public class XIVRunner : IDisposable
     private XIVRunner()
     {
         _movementManager = new OverrideMovement();
+        _overrideAFK = new OverrideAFK();
         Service.Framework.Update += Update;
     }
 
@@ -95,17 +97,32 @@ public class XIVRunner : IDisposable
                 goto GetPT;
             }
 
-            if(_movementManager.DesiredPosition != target)
-            {
-                _movementManager.DesiredPosition = target;
-                TryMount();
-            }
-            else
-            {
-                TryFly();
-            }
+            WhenFindTheDesirePosition(target);
         }
-        else if(_movementManager.DesiredPosition != null)
+        else
+        {
+            WhenNotFindTheDesirePosition();
+        }
+    }
+
+    private void WhenFindTheDesirePosition(Vector3 target)
+    {
+        _overrideAFK.ResetTimers();
+        if (_movementManager.DesiredPosition != target)
+        {
+            _movementManager.DesiredPosition = target;
+            TryMount();
+        }
+        else
+        {
+            TryFly();
+            TryRunFast();
+        }
+    }
+
+    private void WhenNotFindTheDesirePosition()
+    {
+        if (_movementManager.DesiredPosition != null)
         {
             _movementManager.DesiredPosition = null;
             if (IsMounted && !IsFlying)
@@ -119,11 +136,13 @@ public class XIVRunner : IDisposable
     private void TryFly()
     {
         if (Service.Condition[ConditionFlag.Jumping]) return;
+        if (IsFlying) return;
+        if (!IsMounted) return;
 
         bool hasFly = canFly.TryGetValue(Service.ClientState.TerritoryType, out var fly);
 
         //TODO: Whether it is possible to fly from the current territory.
-        if ((fly || !hasFly) && IsMounted && !IsFlying)
+        if (fly || !hasFly)
         {
             ExecuteJump();
 
@@ -136,6 +155,15 @@ public class XIVRunner : IDisposable
                 });
             }
         }
+    }
+
+    private void TryRunFast()
+    {
+        if (IsMounted) return;
+
+        //TODO: add jobs actions for moving fast.
+
+        //ExecuteActionSafe(ActionType.Action, 3); // Sprint.
     }
 
     private void TryMount()
