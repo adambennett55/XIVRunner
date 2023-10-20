@@ -55,8 +55,15 @@ public class XIVRunner : IDisposable
     /// </summary>
     public uint? MountId { get; set; }
 
-    internal bool IsFlying => Service.Condition[ConditionFlag.InFlight] || Service.Condition[ConditionFlag.Diving];
-    internal bool IsMounted => Service.Condition[ConditionFlag.Mounted];
+    /// <summary>
+    /// Is player flying.
+    /// </summary>
+    public static bool IsFlying => Service.Condition[ConditionFlag.InFlight] || Service.Condition[ConditionFlag.Diving];
+
+    /// <summary>
+    /// Is player mounted.
+    /// </summary>
+    public static bool IsMounted => Service.Condition[ConditionFlag.Mounted];
 
     /// <summary>
     /// The way to create this.
