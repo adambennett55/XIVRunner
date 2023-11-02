@@ -66,6 +66,11 @@ public class XIVRunner : IDisposable
     public static bool IsMounted => Service.Condition[ConditionFlag.Mounted];
 
     /// <summary>
+    /// Is this moving is valid
+    /// </summary>
+    public bool MovingValid { get; private set; } = true;
+
+    /// <summary>
     /// The way to create this.
     /// </summary>
     /// <param name="pluginInterface"></param>
@@ -110,6 +115,8 @@ public class XIVRunner : IDisposable
         if (DateTime.Now - _lastTime < timeSpan) return;
         _lastTime = DateTime.Now;
 
+        MovingValid = true;
+
         if (_movementManager.DesiredPosition == null)
         {
             _positions.Clear();
@@ -132,6 +139,8 @@ public class XIVRunner : IDisposable
 
         NaviPts.Clear();
         Service.Log.Warning("Runner seems didn't run well, please check if the NaviPts isn't correct!");
+
+        MovingValid = false;
     }
 
     private void UpdateDirection()
