@@ -29,8 +29,8 @@ public class XIVRunner : IDisposable
     /// If the users control the movement, what will you do?
     /// You can modify <see cref="NaviPts"/> at this time.
     /// </summary>
-    public System.Action? ActionIfUserInput 
-    { 
+    public System.Action? ActionIfUserInput
+    {
         get => _movementManager.ActionIfUserInput;
         set => _movementManager.ActionIfUserInput = value;
     }
@@ -46,7 +46,7 @@ public class XIVRunner : IDisposable
 
     /// <summary>
     /// During it is auto running, what actions you want to do? Sprint maybe.
-    /// This action will be invoked everyframe while it is auto running.
+    /// This action will be invoked every frame while it is auto running.
     /// </summary>
     public System.Action? RunFastAction { get; set; }
 
@@ -88,19 +88,55 @@ public class XIVRunner : IDisposable
     {
         _movementManager.Dispose();
         Service.Framework.Update -= Update;
+        GC.SuppressFinalize(this);
     }
 
-    private  void Update(IFramework framework)
+    private void Update(IFramework framework)
     {
         if (Service.ClientState.LocalPlayer == null) return;
         if (Service.Condition == null || !Service.Condition.Any()) return;
 
         UpdateDirection();
+        CheckIsRunning();
+    }
+
+    private const int POSITION_CAPACITY = 10;
+    private readonly Queue<Vector3> _positions = new(POSITION_CAPACITY);
+    private DateTime _lastTime = DateTime.MinValue;
+    private readonly TimeSpan timeSpan = TimeSpan.FromSeconds(0.1);
+    private void CheckIsRunning()
+    {
+        if (Service.ClientState.LocalPlayer == null) return;
+        if (DateTime.Now - _lastTime < timeSpan) return;
+        _lastTime = DateTime.Now;
+
+        if (_movementManager.DesiredPosition == null)
+        {
+            _positions.Clear();
+            return;
+        }
+
+        while (_positions.Count >= POSITION_CAPACITY)
+        {
+            _positions.TryDequeue(out _);
+        }
+
+        var playerPos = Service.ClientState.LocalPlayer.Position;
+        _positions.Enqueue(playerPos);
+
+        if (_positions.Count != POSITION_CAPACITY) return;
+
+        var firstPt = _positions.Peek();
+
+        if ((playerPos - firstPt).LengthSquared() >= 0.4) return;
+
+        NaviPts.Clear();
+        Service.Log.Warning("Runner seems didn't run well, please check if the NaviPts isn't correct!");
     }
 
     private void UpdateDirection()
     {
-        var positon = Service.ClientState.LocalPlayer?.Position ?? default;
+        var position = Service.ClientState.LocalPlayer?.Position ?? default;
 
         if (!Enable)
         {
@@ -113,8 +149,8 @@ public class XIVRunner : IDisposable
         {
             var target = NaviPts.Peek();
 
-            var dir = target - positon;
-            if (IsFlying ? dir.Length() < Precision 
+            var dir = target - position;
+            if (IsFlying ? dir.Length() < Precision
                 : new Vector2(dir.X, dir.Z).Length() < Precision)
             {
                 NaviPts.Dequeue();
@@ -156,8 +192,8 @@ public class XIVRunner : IDisposable
         }
     }
 
-    private static readonly Dictionary<ushort, bool> canFly = new Dictionary<ushort, bool>();
-    private void TryFly()
+    private static readonly Dictionary<ushort, bool> canFly = new ();
+    private static void TryFly()
     {
         if (Service.Condition[ConditionFlag.Jumping]) return;
         if (IsFlying) return;
@@ -207,7 +243,7 @@ public class XIVRunner : IDisposable
     }
 
     private static unsafe bool ExecuteActionSafe(ActionType type, uint id)
-        => ActionManager.Instance()->GetActionStatus(type, id) == 0 
+        => ActionManager.Instance()->GetActionStatus(type, id) == 0
         && ActionManager.Instance()->UseAction(type, id);
 
     private bool ExecuteMount()
@@ -221,6 +257,6 @@ public class XIVRunner : IDisposable
             return ExecuteActionSafe(ActionType.GeneralAction, 9);
         }
     }
-    private bool ExecuteDismount() => ExecuteActionSafe(ActionType.GeneralAction, 23);
-    private bool ExecuteJump() => ExecuteActionSafe(ActionType.GeneralAction, 2);
+    private static bool ExecuteDismount() => ExecuteActionSafe(ActionType.GeneralAction, 23);
+    private static bool ExecuteJump() => ExecuteActionSafe(ActionType.GeneralAction, 2);
 }

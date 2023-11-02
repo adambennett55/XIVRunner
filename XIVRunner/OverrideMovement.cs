@@ -26,7 +26,7 @@ internal unsafe class OverrideMovement : IDisposable
     public bool IgnoreUserInput { get; set; }
     public Action? ActionIfUserInput { get; set; }
     public Vector3? DesiredPosition { get; set; }
-    public float Precision { get; set; } = 0.1f;
+    public float Precision { get; set; } = 0.5f;
 
     private delegate void RMIWalkDelegate(void* self, float* sumLeft, float* sumForward, float* sumTurnLeft, byte* haveBackwardOrStrafe, byte* a6, byte bAdditiveUnk);
     [Signature("E8 ?? ?? ?? ?? 80 7B 3E 00 48 8D 3D", DetourName = nameof(RMIWalkDetour))]
