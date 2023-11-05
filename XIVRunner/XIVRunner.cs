@@ -2,6 +2,7 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Common.Component.BGCollision;
 using Lumina.Excel.GeneratedSheets;
 using System.Numerics;
 
@@ -107,13 +108,13 @@ public class XIVRunner : IDisposable
 
     private const int POSITION_CAPACITY = 10;
     private readonly Queue<Vector3> _positions = new(POSITION_CAPACITY);
-    private DateTime _lastTime = DateTime.MinValue;
-    private readonly TimeSpan timeSpan = TimeSpan.FromSeconds(0.1);
+    private DateTime _checkTime = DateTime.MinValue;
+    private bool _jumped = false;
     private void CheckIsRunning()
     {
         if (Service.ClientState.LocalPlayer == null) return;
-        if (DateTime.Now - _lastTime < timeSpan) return;
-        _lastTime = DateTime.Now;
+        if (DateTime.Now < _checkTime) return;
+        _checkTime = DateTime.Now + TimeSpan.FromSeconds(0.1); 
 
         MovingValid = true;
 
@@ -135,12 +136,25 @@ public class XIVRunner : IDisposable
 
         var firstPt = _positions.Peek();
 
-        if ((playerPos - firstPt).LengthSquared() >= 0.4) return;
+        if ((playerPos - firstPt).LengthSquared() >= 0.4)
+        {
+            _jumped = false;
+            return;
+        }
 
-        NaviPts.Clear();
-        Service.Log.Warning("Runner seems didn't run well, please check if the NaviPts isn't correct!");
+        if (!_jumped)
+        {
+            ExecuteJump();
+            _jumped = true;
+            _checkTime = DateTime.Now + TimeSpan.FromSeconds(1.1);
+        }
+        else
+        {
+            NaviPts.Clear();
+            Service.Log.Warning("Runner seems didn't run well, please check if the NaviPts isn't correct!");
 
-        MovingValid = false;
+            MovingValid = false;
+        }
     }
 
     private void UpdateDirection()
