@@ -5,8 +5,6 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XIVRunner", "XIVRunner\XIVRunner.csproj", "{A6F492EE-F7F3-45F0-BFB4-C8AEDAABC52B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XIVRunnerExample", "XIVRunnerExample\XIVRunnerExample.csproj", "{AEF6A660-9BF0-4BE4-87CF-801333257608}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,10 +15,6 @@ Global
 		{A6F492EE-F7F3-45F0-BFB4-C8AEDAABC52B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6F492EE-F7F3-45F0-BFB4-C8AEDAABC52B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6F492EE-F7F3-45F0-BFB4-C8AEDAABC52B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AEF6A660-9BF0-4BE4-87CF-801333257608}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AEF6A660-9BF0-4BE4-87CF-801333257608}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AEF6A660-9BF0-4BE4-87CF-801333257608}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AEF6A660-9BF0-4BE4-87CF-801333257608}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -52,6 +52,12 @@ public class XIVRunner : IDisposable
     public System.Action? RunFastAction { get; set; }
 
     /// <summary>
+    /// Use mount?.
+    /// </summary>
+    /// 
+    public bool UseMount { get; set; }
+
+    /// <summary>
     /// The mount id.
     /// </summary>
     public uint? MountId { get; set; }
@@ -114,7 +120,7 @@ public class XIVRunner : IDisposable
     {
         if (Service.ClientState.LocalPlayer == null) return;
         if (DateTime.Now < _checkTime) return;
-        _checkTime = DateTime.Now + TimeSpan.FromSeconds(0.1); 
+        _checkTime = DateTime.Now + TimeSpan.FromSeconds(0.1);
 
         MovingValid = true;
 
@@ -215,7 +221,7 @@ public class XIVRunner : IDisposable
         }
     }
 
-    private static readonly Dictionary<ushort, bool> canFly = new ();
+    private static readonly Dictionary<ushort, bool> canFly = new();
     private static void TryFly()
     {
         if (Service.Condition[ConditionFlag.Jumping]) return;
@@ -256,7 +262,7 @@ public class XIVRunner : IDisposable
 
     private void TryMount()
     {
-        if (IsMounted) return;
+        if (IsMounted || !UseMount) return;
 
         var territory = Service.Data.GetExcelSheet<TerritoryType>()?.GetRow(Service.ClientState.TerritoryType);
         if (territory?.Mount ?? false)
