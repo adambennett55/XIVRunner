@@ -9,7 +9,7 @@ This repo is heavily inspired by [awgil/ffxiv_visland](https://github.com/awgil/
 Add XIVRunner as a submodule to your project:
 
 ```shell
-git submodule add https://github.com/ArchiDog1998/XIVRunner
+git submodule add https://github.com/adambennett55/XIVRunner
 ```
 
 Add it to your plugin's CSProj file:
